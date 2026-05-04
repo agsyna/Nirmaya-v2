@@ -111,7 +111,7 @@ Deno.serve(async () => {
       recipient = normalizeIndianPhoneForSms(recipient);
 
       if (!recipient) {
-        throw new Error("Recipient phone not found or invalid");
+        throw new Error("INVALID_RECIPIENT_PHONE");
       }
 
       const message = buildSmsMessage(notification.event_type, notification.payload);
@@ -132,8 +132,9 @@ Deno.serve(async () => {
         .update({ status: "sent", sent_at: new Date().toISOString() })
         .eq("id", notification.id);
     } catch (err) {
+      const errorMessage = String(err?.message || err);
       const retryCount = (notification.retry_count || 0) + 1;
-      const shouldRetry = retryCount < 3;
+      const shouldRetry = errorMessage !== "INVALID_RECIPIENT_PHONE" && retryCount < 3;
 
       await supabase.from("sms_delivery_logs").insert({
         clinic_id: notification.clinic_id,
@@ -141,7 +142,10 @@ Deno.serve(async () => {
         recipient: notification.payload?.phone || "unknown",
         message_preview: "SMS failed",
         status: "failed",
-        error_details: String(err?.message || err),
+        error_details:
+          errorMessage === "INVALID_RECIPIENT_PHONE"
+            ? "Recipient phone not found or invalid"
+            : errorMessage,
       });
 
       await supabase
@@ -152,7 +156,10 @@ Deno.serve(async () => {
           scheduled_at: shouldRetry
             ? new Date(Date.now() + 5 * 60 * 1000).toISOString()
             : new Date().toISOString(),
-          error_message: String(err?.message || err),
+          error_message:
+            errorMessage === "INVALID_RECIPIENT_PHONE"
+              ? "Recipient phone not found or invalid"
+              : errorMessage,
         })
         .eq("id", notification.id);
     }

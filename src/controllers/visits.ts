@@ -109,6 +109,7 @@ export const createVisit = async (req: Request, res: Response) => {
   await enqueueSms({
     clinicId,
     patientId: treatment.patientId,
+    treatmentId: treatment.id,
     eventType: "visit_added",
     payload: {
       visitDate: visit.visitDate,
@@ -261,6 +262,7 @@ export const createVisitWithDetails = async (req: Request, res: Response) => {
   await enqueueSms({
     clinicId,
     patientId: treatment.patientId,
+    treatmentId: treatment.id,
     eventType: "visit_added",
     payload: {
       visitDate: visit.visitDate,
