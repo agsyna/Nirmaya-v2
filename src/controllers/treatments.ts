@@ -15,8 +15,23 @@ import { enqueueSms } from "../services/smsService";
 import { getTreatmentBalance } from "../services/treatmentService";
 import { AppError } from "../types";
 
+const getClinicPatient = async (clinicId: string, patientId: string) => {
+  const [patient] = await db
+    .select()
+    .from(patients)
+    .where(and(eq(patients.id, patientId), eq(patients.clinicId, clinicId)))
+    .limit(1);
+
+  if (!patient) {
+    throw new AppError(404, "Patient not found", "Not found");
+  }
+
+  return patient;
+};
+
 export const createTreatment = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
+  const patient = await getClinicPatient(clinicId, req.body.patientId);
   const [treatment] = await db
     .insert(treatments)
     .values({
@@ -42,6 +57,8 @@ export const createTreatment = async (req: Request, res: Response) => {
     payload: {
       treatmentTitle: treatment.title,
       totalFee: treatment.totalFee,
+      patientName: patient.name,
+      phone: patient.phone,
     },
   });
 

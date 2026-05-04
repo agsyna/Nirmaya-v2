@@ -20,7 +20,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
     throw new AppError(400, "File is required", "Missing file");
   }
 
-  const { patientId, treatmentId, visitId, category } = req.body;
+  const { patientId, treatmentId, visitId, category, name } = req.body;
   const folder = category || "other";
 
   const uploaded = await uploadToStorage({
@@ -41,6 +41,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
       visitId: visitId || null,
       category,
       fileUrl: uploaded.publicUrl,
+      name: name || null,
       fileName: file.originalname,
       fileSize: file.size,
       mimeType: file.mimetype,
@@ -60,6 +61,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
   if (category === "prescription") {
     let patientIdForSms = patientId;
     let patientName: string | undefined;
+    let patientPhone: string | undefined;
     if (!patientIdForSms && visitId) {
       const [visit] = await db
         .select()
@@ -80,11 +82,12 @@ export const uploadDocument = async (req: Request, res: Response) => {
 
     if (patientIdForSms) {
       const [patient] = await db
-        .select({ name: patients.name })
+        .select({ name: patients.name, phone: patients.phone })
         .from(patients)
         .where(and(eq(patients.id, patientIdForSms), eq(patients.clinicId, clinicId)))
         .limit(1);
       patientName = patient?.name;
+      patientPhone = patient?.phone;
     }
 
     await enqueueSms({
@@ -94,7 +97,8 @@ export const uploadDocument = async (req: Request, res: Response) => {
       payload: {
         patientId: patientIdForSms,
         patientName,
-        documentName: file.originalname,
+        phone: patientPhone,
+        documentName: name || file.originalname,
       },
     });
   }

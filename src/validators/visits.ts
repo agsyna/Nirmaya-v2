@@ -19,4 +19,6 @@ export const createVisitWithDetailsSchema = createVisitSchema.extend({
   paymentMode: z.enum(["cash", "upi", "card", "bank"]).optional().nullable(),
   paymentReferenceId: z.string().optional().nullable(),
   paymentNotes: z.string().optional().nullable(),
+  reportNames: z.string().optional().nullable(),
+  prescriptionNames: z.string().optional().nullable(),
 });

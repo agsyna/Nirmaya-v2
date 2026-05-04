@@ -41,9 +41,53 @@ const getClinicTreatment = async (clinicId: string, treatmentId: string) => {
   return treatment;
 };
 
+const getClinicPatient = async (clinicId: string, patientId: string) => {
+  const [patient] = await db
+    .select()
+    .from(patients)
+    .where(
+      and(
+        eq(patients.id, patientId),
+        eq(patients.clinicId, clinicId),
+        eq(patients.isActive, true)
+      )
+    )
+    .limit(1);
+
+  if (!patient) {
+    throw new AppError(404, "Patient not found", "Not found");
+  }
+
+  return patient;
+};
+
+const parseNameList = (value: unknown) => {
+  if (!value) return [] as string[];
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item)).filter((item) => item.trim().length > 0);
+  }
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => String(item))
+          .filter((item) => item.trim().length > 0);
+      }
+    } catch (_) {
+      return value
+        .split(",")
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+    }
+  }
+  return [] as string[];
+};
+
 export const createVisit = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
   const treatment = await getClinicTreatment(clinicId, req.body.treatmentId);
+  const patient = await getClinicPatient(clinicId, treatment.patientId);
 
   const [visit] = await db
     .insert(visits)
@@ -69,6 +113,9 @@ export const createVisit = async (req: Request, res: Response) => {
     payload: {
       visitDate: visit.visitDate,
       treatmentTitle: treatment.title,
+      patientName: patient.name,
+      phone: patient.phone,
+      paymentAmount: transaction?.amount ?? null,
     },
   });
 
@@ -78,7 +125,10 @@ export const createVisit = async (req: Request, res: Response) => {
 export const createVisitWithDetails = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
   const treatment = await getClinicTreatment(clinicId, req.body.treatmentId);
+  const patient = await getClinicPatient(clinicId, treatment.patientId);
   const files = getVisitDetailFiles(req);
+  const reportNames = parseNameList(req.body.reportNames);
+  const prescriptionNames = parseNameList(req.body.prescriptionNames);
 
   const [visit] = await db
     .insert(visits)
@@ -133,6 +183,8 @@ export const createVisitWithDetails = async (req: Request, res: Response) => {
       payload: {
         amount: transaction.amount,
         paymentMode: transaction.paymentMode,
+        patientName: patient.name,
+        phone: patient.phone,
       },
     });
   }
@@ -140,7 +192,8 @@ export const createVisitWithDetails = async (req: Request, res: Response) => {
   const uploadedDocuments = [];
   const uploadVisitDocument = async (
     file: Express.Multer.File,
-    category: "report" | "prescription"
+    category: "report" | "prescription",
+    name?: string
   ) => {
     const uploaded = await uploadToStorage({
       clinicId,
@@ -160,6 +213,7 @@ export const createVisitWithDetails = async (req: Request, res: Response) => {
         visitId: visit.id,
         category,
         fileUrl: uploaded.publicUrl,
+        name: name || null,
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
@@ -179,11 +233,17 @@ export const createVisitWithDetails = async (req: Request, res: Response) => {
     return document;
   };
 
-  for (const file of files.reportFiles) {
-    uploadedDocuments.push(await uploadVisitDocument(file, "report"));
+  for (const [index, file] of files.reportFiles.entries()) {
+    uploadedDocuments.push(
+      await uploadVisitDocument(file, "report", reportNames[index])
+    );
   }
-  for (const file of files.prescriptionFiles) {
-    const document = await uploadVisitDocument(file, "prescription");
+  for (const [index, file] of files.prescriptionFiles.entries()) {
+    const document = await uploadVisitDocument(
+      file,
+      "prescription",
+      prescriptionNames[index]
+    );
     uploadedDocuments.push(document);
     await enqueueSms({
       clinicId,
@@ -192,7 +252,9 @@ export const createVisitWithDetails = async (req: Request, res: Response) => {
       eventType: "prescription_uploaded",
       payload: {
         patientId: treatment.patientId,
-        documentName: file.originalname,
+        patientName: patient.name,
+        phone: patient.phone,
+        documentName: prescriptionNames[index] || file.originalname,
       },
     });
   }
@@ -204,6 +266,8 @@ export const createVisitWithDetails = async (req: Request, res: Response) => {
     payload: {
       visitDate: visit.visitDate,
       treatmentTitle: treatment.title,
+      patientName: patient.name,
+      phone: patient.phone,
     },
   });
 

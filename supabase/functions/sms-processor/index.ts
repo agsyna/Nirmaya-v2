@@ -37,7 +37,8 @@ const buildSmsMessage = (eventType: string, payload: any) => {
     case "treatment_created":
       return `Treatment ${payload.treatmentTitle || ""} created. Total: INR ${payload.totalFee || ""}.`;
     case "visit_added":
-      return `Visit recorded on ${payload.visitDate || ""} for ${payload.treatmentTitle || ""}.`;
+      return `Visit recorded on ${payload.visitDate || ""} for ${payload.treatmentTitle || ""}.` +
+        (payload.paymentAmount ? ` Payment: INR ${payload.paymentAmount}.` : "");
     case "prescription_uploaded":
       return `Prescription uploaded for ${payload.patientName || ""}.`;
     case "payment_added":

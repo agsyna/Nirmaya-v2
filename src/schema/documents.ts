@@ -29,6 +29,7 @@ export const documents = pgTable(
     visitId: uuid("visit_id").references(() => visits.id),
     category: documentCategoryEnum("category").notNull(),
     fileUrl: text("file_url").notNull(),
+    name: varchar("name", { length: 255 }),
     fileName: varchar("file_name", { length: 255 }).notNull(),
     fileSize: integer("file_size"),
     mimeType: varchar("mime_type", { length: 100 }),
