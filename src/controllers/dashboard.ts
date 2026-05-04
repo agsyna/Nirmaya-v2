@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, or } from "drizzle-orm";
 import db from "../config/db";
 import { bills } from "../schema/bills";
 import { documents } from "../schema/documents";
@@ -12,34 +12,6 @@ import { visits } from "../schema/visits";
 import { AppError } from "../types";
 import { parsePagination } from "../utils/pagination";
 import { sendSuccess } from "../utils/response";
-
-const paidAmountExpression = sql<number>`(
-  SELECT COALESCE(SUM(${transactions.amount}), 0)
-  FROM ${transactions}
-  WHERE ${transactions.clinicId} = ${patients.clinicId}
-    AND ${transactions.patientId} = ${patients.id}
-    AND ${transactions.isDeleted} = false
-)`;
-
-const totalFeeExpression = sql<number>`(
-  SELECT COALESCE(SUM(${treatments.finalFee}), 0)
-  FROM ${treatments}
-  WHERE ${treatments.clinicId} = ${patients.clinicId}
-    AND ${treatments.patientId} = ${patients.id}
-    AND ${treatments.isDeleted} = false
-)`;
-
-const balanceExpression = sql<number>`(${totalFeeExpression} - ${paidAmountExpression})`;
-
-const lastVisitExpression = sql<string | null>`(
-  SELECT MAX(${visits.visitDate})
-  FROM ${visits}
-  INNER JOIN ${treatments} ON ${treatments.id} = ${visits.treatmentId}
-  WHERE ${visits.clinicId} = ${patients.clinicId}
-    AND ${treatments.patientId} = ${patients.id}
-    AND ${visits.isDeleted} = false
-    AND ${treatments.isDeleted} = false
-)`;
 
 export const listDashboardPatients = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
@@ -58,83 +30,117 @@ export const listDashboardPatients = async (req: Request, res: Response) => {
     );
   }
 
-  if (status) {
-    whereClause = and(
-      whereClause,
-      sql`EXISTS (
-        SELECT 1
-        FROM ${treatments}
-        WHERE ${treatments.clinicId} = ${patients.clinicId}
-          AND ${treatments.patientId} = ${patients.id}
-          AND ${treatments.status} = ${status}
-          AND ${treatments.isDeleted} = false
-      )`
-    );
-  }
-
-  const sortExpression =
-    sortBy === "name"
-      ? patients.name
-      : sortBy === "lastVisitDate"
-        ? lastVisitExpression
-        : sortBy === "balance"
-          ? balanceExpression
-          : patients.createdAt;
-
-  const data = await db
-    .select({
-      id: patients.id,
-      name: patients.name,
-      phone: patients.phone,
-      email: patients.email,
-      age: patients.age,
-      gender: patients.gender,
-      hasIdProof: patients.hasIdProof,
-      createdAt: patients.createdAt,
-      updatedAt: patients.updatedAt,
-      treatmentCount: sql<number>`(
-        SELECT COUNT(*)
-        FROM ${treatments}
-        WHERE ${treatments.clinicId} = ${patients.clinicId}
-          AND ${treatments.patientId} = ${patients.id}
-          AND ${treatments.isDeleted} = false
-      )`,
-      ongoingTreatmentCount: sql<number>`(
-        SELECT COUNT(*)
-        FROM ${treatments}
-        WHERE ${treatments.clinicId} = ${patients.clinicId}
-          AND ${treatments.patientId} = ${patients.id}
-          AND ${treatments.status} = 'ongoing'
-          AND ${treatments.isDeleted} = false
-      )`,
-      completedTreatmentCount: sql<number>`(
-        SELECT COUNT(*)
-        FROM ${treatments}
-        WHERE ${treatments.clinicId} = ${patients.clinicId}
-          AND ${treatments.patientId} = ${patients.id}
-          AND ${treatments.status} = 'completed'
-          AND ${treatments.isDeleted} = false
-      )`,
-      lastVisitDate: lastVisitExpression,
-      totalFee: totalFeeExpression,
-      paidAmount: paidAmountExpression,
-      balance: balanceExpression,
-    })
-    .from(patients)
-    .where(whereClause)
-    .orderBy(sortOrder === "asc" ? asc(sortExpression) : desc(sortExpression))
-    .limit(limit)
-    .offset(offset);
-
-  const [{ count }] = await db
-    .select({ count: sql<number>`count(*)` })
+  const clinicPatients = await db
+    .select()
     .from(patients)
     .where(whereClause);
+
+  const patientIds = clinicPatients.map((patient) => patient.id);
+  const [clinicTreatments, clinicTransactions, clinicVisits] = await Promise.all([
+    patientIds.length
+      ? db
+          .select()
+          .from(treatments)
+          .where(
+            and(
+              eq(treatments.clinicId, clinicId),
+              eq(treatments.isDeleted, false),
+              inArray(treatments.patientId, patientIds)
+            )
+          )
+      : Promise.resolve([]),
+    patientIds.length
+      ? db
+          .select()
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.clinicId, clinicId),
+              eq(transactions.isDeleted, false),
+              inArray(transactions.patientId, patientIds)
+            )
+          )
+      : Promise.resolve([]),
+    db
+      .select()
+      .from(visits)
+      .where(and(eq(visits.clinicId, clinicId), eq(visits.isDeleted, false))),
+  ]);
+
+  const rows = clinicPatients
+    .map((patient) => {
+      const patientTreatments = clinicTreatments.filter(
+        (treatment) => treatment.patientId === patient.id
+      );
+
+      if (status && !patientTreatments.some((treatment) => treatment.status === status)) {
+        return null;
+      }
+
+      const treatmentIds = new Set(patientTreatments.map((treatment) => treatment.id));
+      const patientTransactions = clinicTransactions.filter(
+        (transaction) => transaction.patientId === patient.id
+      );
+      const patientVisits = clinicVisits.filter((visit) => treatmentIds.has(visit.treatmentId));
+      const lastVisitDate =
+        patientVisits
+          .map((visit) => visit.visitDate)
+          .sort()
+          .at(-1) ?? null;
+      const totalFee = patientTreatments.reduce(
+        (sum, treatment) => sum + Number(treatment.finalFee),
+        0
+      );
+      const paidAmount = patientTransactions.reduce(
+        (sum, transaction) => sum + Number(transaction.amount),
+        0
+      );
+
+      return {
+        id: patient.id,
+        name: patient.name,
+        phone: patient.phone,
+        email: patient.email,
+        age: patient.age,
+        gender: patient.gender,
+        hasIdProof: patient.hasIdProof,
+        createdAt: patient.createdAt,
+        updatedAt: patient.updatedAt,
+        treatmentCount: patientTreatments.length,
+        ongoingTreatmentCount: patientTreatments.filter(
+          (treatment) => treatment.status === "ongoing"
+        ).length,
+        completedTreatmentCount: patientTreatments.filter(
+          (treatment) => treatment.status === "completed"
+        ).length,
+        lastVisitDate,
+        totalFee,
+        paidAmount,
+        balance: totalFee - paidAmount,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+
+  rows.sort((a, b) => {
+    const direction = sortOrder === "asc" ? 1 : -1;
+    if (sortBy === "name") {
+      return a.name.localeCompare(b.name) * direction;
+    }
+    if (sortBy === "lastVisitDate") {
+      return String(a.lastVisitDate ?? "").localeCompare(String(b.lastVisitDate ?? "")) * direction;
+    }
+    if (sortBy === "balance") {
+      return (a.balance - b.balance) * direction;
+    }
+    return (a.createdAt.getTime() - b.createdAt.getTime()) * direction;
+  });
+
+  const data = rows.slice(offset, offset + limit);
 
   return sendSuccess(res, data, "Dashboard patients fetched", 200, {
     page,
     limit,
-    total: Number(count),
+    total: rows.length,
   });
 };
 
