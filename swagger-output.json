@@ -1,0 +1,17 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Nirmaya Clinic API",
+    "version": "1.0.0",
+    "description": "Clinic management backend API"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "API base"
+    }
+  ],
+  "paths": {},
+  "components": {},
+  "tags": []
+}

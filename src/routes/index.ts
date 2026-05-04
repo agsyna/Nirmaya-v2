@@ -10,6 +10,7 @@ import documentRoutes from "../routes/documents";
 import followupRoutes from "../routes/followups";
 import billRoutes from "../routes/bills";
 import auditRoutes from "../routes/auditLogs";
+import dashboardRoutes from "../routes/dashboard";
 import { requireAuth, requireClinicScope } from "../middlewares/auth";
 
 const router = Router();
@@ -24,6 +25,7 @@ router.use("/health", normalizeRouter(healthRoutes));
 
 // Protected routes
 router.use(requireAuth, requireClinicScope);
+router.use("/dashboard", normalizeRouter(dashboardRoutes));
 router.use("/patients", normalizeRouter(patientRoutes));
 router.use("/treatments", normalizeRouter(treatmentRoutes));
 router.use("/visits", normalizeRouter(visitRoutes));

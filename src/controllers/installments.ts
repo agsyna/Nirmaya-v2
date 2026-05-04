@@ -11,7 +11,7 @@ export const createInstallment = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
   const [installment] = await db
     .insert(installments)
-    .values({ clinicId, ...req.body })
+    .values({ clinicId, status: "pending", ...req.body })
     .returning();
 
   await createAuditLog({

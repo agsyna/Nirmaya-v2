@@ -33,8 +33,9 @@ export const patients = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
-    clinicPhoneIdx: uniqueIndex("patients_clinic_phone_idx").on(
+    clinicNamePhoneIdx: uniqueIndex("patients_clinic_name_phone_idx").on(
       table.clinicId,
+      table.name,
       table.phone
     ),
     clinicCreatedIdx: index("patients_clinic_created_idx").on(
