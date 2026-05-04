@@ -124,7 +124,7 @@ export const listTreatments = async (req: Request, res: Response) => {
 
 export const getTreatment = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const treatmentId = req.params.id;
+  const treatmentId = req.params.id as string;
 
   const [treatment] = await db
     .select()
@@ -163,7 +163,7 @@ export const getTreatment = async (req: Request, res: Response) => {
 
 export const updateTreatment = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const treatmentId = req.params.id;
+  const treatmentId = req.params.id as string;
 
   const [existing] = await db
     .select()
@@ -199,7 +199,7 @@ export const updateTreatment = async (req: Request, res: Response) => {
 
 export const deleteTreatment = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const treatmentId = req.params.id;
+  const treatmentId = req.params.id as string;
 
   const [existing] = await db
     .select()

@@ -3,7 +3,7 @@ import { sendSuccess } from "@/utils/response";
 import db from "@/config/db";
 import { sql } from "drizzle-orm";
 
-export const getHealth = async (req: Request, res: Response) => {
+export const getHealth = async (_req: Request, res: Response) => {
   try {
     // Test database connection
     const result = await db.execute(sql`SELECT 1 as status`);

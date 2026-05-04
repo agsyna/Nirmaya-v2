@@ -76,7 +76,7 @@ export const listFollowups = async (req: Request, res: Response) => {
 
 export const updateFollowup = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const followupId = req.params.id;
+  const followupId = req.params.id as string;
 
   const [existing] = await db
     .select()

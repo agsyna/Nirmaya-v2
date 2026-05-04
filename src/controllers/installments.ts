@@ -63,7 +63,7 @@ export const listInstallments = async (req: Request, res: Response) => {
 
 export const updateInstallment = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const installmentId = req.params.id;
+  const installmentId = req.params.id as string;
 
   const [existing] = await db
     .select()

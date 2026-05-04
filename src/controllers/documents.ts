@@ -142,7 +142,7 @@ export const listDocuments = async (req: Request, res: Response) => {
 
 export const deleteDocument = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const documentId = req.params.id;
+  const documentId = req.params.id as string;
 
   const [existing] = await db
     .select()

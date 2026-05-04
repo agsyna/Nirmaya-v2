@@ -26,10 +26,10 @@ export const listAuditLogs = async (req: Request, res: Response) => {
     whereClause = and(whereClause, eq(auditLogs.action, action as any));
   }
   if (dateFrom) {
-    whereClause = and(whereClause, gte(auditLogs.timestamp, dateFrom));
+    whereClause = and(whereClause, gte(auditLogs.timestamp, new Date(dateFrom)));
   }
   if (dateTo) {
-    whereClause = and(whereClause, lte(auditLogs.timestamp, dateTo));
+    whereClause = and(whereClause, lte(auditLogs.timestamp, new Date(dateTo)));
   }
 
   const data = await db

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import PDFDocument from "pdfkit";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import db from "@/config/db";
 import { bills } from "@/schema/bills";
 import { treatments } from "@/schema/treatments";
@@ -111,9 +111,9 @@ export const generateBill = async (req: Request, res: Response) => {
       treatmentId: treatment.id,
       billNumber: `BILL-${Date.now()}`,
       pdfUrl: uploaded.publicUrl,
-      totalAmount,
-      paidAmount,
-      balanceAmount,
+      totalAmount: String(totalAmount),
+      paidAmount: String(paidAmount),
+      balanceAmount: String(balanceAmount),
     })
     .returning();
 
@@ -131,7 +131,7 @@ export const generateBill = async (req: Request, res: Response) => {
 
 export const getBill = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const billId = req.params.id;
+  const billId = req.params.id as string;
 
   const [bill] = await db
     .select()

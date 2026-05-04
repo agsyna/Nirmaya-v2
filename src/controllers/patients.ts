@@ -80,7 +80,7 @@ export const listPatients = async (req: Request, res: Response) => {
 
 export const getPatient = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const patientId = req.params.id;
+  const patientId = req.params.id as string;
 
   const [patient] = await db
     .select()
@@ -168,7 +168,7 @@ export const getPatient = async (req: Request, res: Response) => {
 
 export const updatePatient = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const patientId = req.params.id;
+  const patientId = req.params.id as string;
 
   const [existing] = await db
     .select()
@@ -204,7 +204,7 @@ export const updatePatient = async (req: Request, res: Response) => {
 
 export const deletePatient = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const patientId = req.params.id;
+  const patientId = req.params.id as string;
 
   const [existing] = await db
     .select()

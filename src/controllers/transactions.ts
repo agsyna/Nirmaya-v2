@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { and, eq, sql, gte, lte } from "drizzle-orm";
 import db from "@/config/db";
 import { transactions } from "@/schema/transactions";
-import { treatments } from "@/schema/treatments";
 import { sendSuccess } from "@/utils/response";
 import { parsePagination } from "@/utils/pagination";
 import { createAuditLog } from "@/services/auditService";
@@ -65,10 +64,10 @@ export const listTransactions = async (req: Request, res: Response) => {
     whereClause = and(whereClause, eq(transactions.paymentMode, paymentMode as any));
   }
   if (dateFrom) {
-    whereClause = and(whereClause, gte(transactions.createdAt, dateFrom));
+    whereClause = and(whereClause, gte(transactions.createdAt, new Date(dateFrom)));
   }
   if (dateTo) {
-    whereClause = and(whereClause, lte(transactions.createdAt, dateTo));
+    whereClause = and(whereClause, lte(transactions.createdAt, new Date(dateTo)));
   }
   if (month) {
     whereClause = and(
@@ -99,7 +98,7 @@ export const listTransactions = async (req: Request, res: Response) => {
 
 export const updateTransaction = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const transactionId = req.params.id;
+  const transactionId = req.params.id as string;
 
   const [existing] = await db
     .select()
@@ -162,7 +161,7 @@ export const updateTransaction = async (req: Request, res: Response) => {
 
 export const deleteTransaction = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const transactionId = req.params.id;
+  const transactionId = req.params.id as string;
 
   const [existing] = await db
     .select()
