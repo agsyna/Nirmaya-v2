@@ -7,7 +7,7 @@ export const validateBody = (schema: ZodSchema) =>
     const result = schema.safeParse(req.body);
     if (!result.success) {
       return next(
-        new AppError(400, "Validation failed", result.error.flatten().message)
+        new AppError(400, "Validation failed", result.error.message)
       );
     }
     req.body = result.data;
@@ -19,7 +19,7 @@ export const validateQuery = (schema: ZodSchema) =>
     const result = schema.safeParse(req.query);
     if (!result.success) {
       return next(
-        new AppError(400, "Validation failed", result.error.flatten().message)
+        new AppError(400, "Validation failed", result.error.message)
       );
     }
     req.query = result.data;

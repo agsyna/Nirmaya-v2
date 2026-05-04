@@ -91,7 +91,7 @@ export const listVisits = async (req: Request, res: Response) => {
 
 export const updateVisit = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const visitId = req.params.id;
+  const visitId = req.params.id as string;
 
   const [existing] = await db
     .select()
@@ -127,7 +127,7 @@ export const updateVisit = async (req: Request, res: Response) => {
 
 export const deleteVisit = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const visitId = req.params.id;
+  const visitId = req.params.id as string;
 
   const [existing] = await db
     .select()
