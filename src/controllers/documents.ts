@@ -1,16 +1,16 @@
 import { Request, Response } from "express";
 import { and, eq, sql } from "drizzle-orm";
-import db from "@/config/db";
-import { documents } from "@/schema/documents";
-import { treatments } from "@/schema/treatments";
-import { visits } from "@/schema/visits";
-import { patients } from "@/schema/patients";
-import { sendSuccess } from "@/utils/response";
-import { parsePagination } from "@/utils/pagination";
-import { createAuditLog } from "@/services/auditService";
-import { enqueueSms } from "@/services/smsService";
-import { uploadToStorage } from "@/services/documentService";
-import { AppError } from "@/types";
+import db from "../config/db";
+import { documents } from "../schema/documents";
+import { treatments } from "../schema/treatments";
+import { visits } from "../schema/visits";
+import { patients } from "../schema/patients";
+import { sendSuccess } from "../utils/response";
+import { parsePagination } from "../utils/pagination";
+import { createAuditLog } from "../services/auditService";
+import { enqueueSms } from "../services/smsService";
+import { uploadToStorage } from "../services/documentService";
+import { AppError } from "../types";
 
 export const uploadDocument = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;

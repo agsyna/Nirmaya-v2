@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 import { and, eq, sql, gte, lte } from "drizzle-orm";
-import db from "@/config/db";
-import { transactions } from "@/schema/transactions";
-import { sendSuccess } from "@/utils/response";
-import { parsePagination } from "@/utils/pagination";
-import { createAuditLog } from "@/services/auditService";
-import { enqueueSms } from "@/services/smsService";
-import { AppError } from "@/types";
+import db from "../config/db";
+import { transactions } from "../schema/transactions";
+import { sendSuccess } from "../utils/response";
+import { parsePagination } from "../utils/pagination";
+import { createAuditLog } from "../services/auditService";
+import { enqueueSms } from "../services/smsService";
+import { AppError } from "../types";
 
 export const createTransaction = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;

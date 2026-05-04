@@ -1,5 +1,5 @@
-import db from "@/config/db";
-import { auditLogs } from "@/schema/auditLogs";
+import db from "../config/db";
+import { auditLogs } from "../schema/auditLogs";
 
 export const createAuditLog = async (params: {
   clinicId: string;

@@ -5,10 +5,10 @@ import {
   getPatient,
   listPatients,
   updatePatient,
-} from "@/controllers/patients";
-import { asyncHandler } from "@/middlewares/errorHandler";
-import { validateBody } from "@/middlewares/validate";
-import { createPatientSchema, updatePatientSchema } from "@/validators/patients";
+} from "../controllers/patients";
+import { asyncHandler } from "../middlewares/errorHandler";
+import { validateBody } from "../middlewares/validate";
+import { createPatientSchema, updatePatientSchema } from "../validators/patients";
 
 const router = Router();
 

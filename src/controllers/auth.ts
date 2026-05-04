@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { loginWithPhone } from "@/services/authService";
-import { sendSuccess } from "@/utils/response";
+import { loginWithPhone } from "../services/authService";
+import { sendSuccess } from "../utils/response";
 
 export const login = async (req: Request, res: Response) => {
   const { phone, password } = req.body;

@@ -8,12 +8,12 @@ import {
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
-import { clinics } from "@/schema/clinics";
-import { patients } from "@/schema/patients";
-import { treatments } from "@/schema/treatments";
-import { visits } from "@/schema/visits";
-import { users } from "@/schema/users";
-import { documentCategoryEnum } from "@/schema/enums";
+import { clinics } from "../schema/clinics";
+import { patients } from "../schema/patients";
+import { treatments } from "../schema/treatments";
+import { visits } from "../schema/visits";
+import { users } from "../schema/users";
+import { documentCategoryEnum } from "../schema/enums";
 
 export const documents = pgTable(
   "documents",

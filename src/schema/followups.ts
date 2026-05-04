@@ -7,10 +7,10 @@ import {
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
-import { clinics } from "@/schema/clinics";
-import { patients } from "@/schema/patients";
-import { treatments } from "@/schema/treatments";
-import { followupStatusEnum } from "@/schema/enums";
+import { clinics } from "../schema/clinics";
+import { patients } from "../schema/patients";
+import { treatments } from "../schema/treatments";
+import { followupStatusEnum } from "../schema/enums";
 
 export const followups = pgTable(
   "followups",

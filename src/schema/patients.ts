@@ -9,8 +9,8 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
-import { clinics } from "@/schema/clinics";
-import { genderEnum } from "@/schema/enums";
+import { clinics } from "../schema/clinics";
+import { genderEnum } from "../schema/enums";
 
 export const patients = pgTable(
   "patients",

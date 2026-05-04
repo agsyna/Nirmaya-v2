@@ -5,9 +5,9 @@ import {
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
-import { clinics } from "@/schema/clinics";
-import { users } from "@/schema/users";
-import { auditActionEnum, auditEntityEnum } from "@/schema/enums";
+import { clinics } from "../schema/clinics";
+import { users } from "../schema/users";
+import { auditActionEnum, auditEntityEnum } from "../schema/enums";
 
 export const auditLogs = pgTable(
   "audit_logs",

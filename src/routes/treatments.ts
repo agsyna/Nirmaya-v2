@@ -5,13 +5,13 @@ import {
   getTreatment,
   listTreatments,
   updateTreatment,
-} from "@/controllers/treatments";
-import { asyncHandler } from "@/middlewares/errorHandler";
-import { validateBody } from "@/middlewares/validate";
+} from "../controllers/treatments";
+import { asyncHandler } from "../middlewares/errorHandler";
+import { validateBody } from "../middlewares/validate";
 import {
   createTreatmentSchema,
   updateTreatmentSchema,
-} from "@/validators/treatments";
+} from "../validators/treatments";
 
 const router = Router();
 

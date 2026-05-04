@@ -3,11 +3,11 @@ import {
   deleteDocument,
   listDocuments,
   uploadDocument,
-} from "@/controllers/documents";
-import { asyncHandler } from "@/middlewares/errorHandler";
-import { validateBody } from "@/middlewares/validate";
-import { upload } from "@/middlewares/upload";
-import { uploadDocumentSchema } from "@/validators/documents";
+} from "../controllers/documents";
+import { asyncHandler } from "../middlewares/errorHandler";
+import { validateBody } from "../middlewares/validate";
+import { upload } from "../middlewares/upload";
+import { uploadDocumentSchema } from "../validators/documents";
 
 const router = Router();
 

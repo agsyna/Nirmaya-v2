@@ -6,8 +6,8 @@ import {
   boolean,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { clinics } from "@/schema/clinics";
-import { userRoleEnum } from "@/schema/enums";
+import { clinics } from "../schema/clinics";
+import { userRoleEnum } from "../schema/enums";
 
 export const users = pgTable(
   "users",

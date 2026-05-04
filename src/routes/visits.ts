@@ -4,10 +4,10 @@ import {
   deleteVisit,
   listVisits,
   updateVisit,
-} from "@/controllers/visits";
-import { asyncHandler } from "@/middlewares/errorHandler";
-import { validateBody } from "@/middlewares/validate";
-import { createVisitSchema, updateVisitSchema } from "@/validators/visits";
+} from "../controllers/visits";
+import { asyncHandler } from "../middlewares/errorHandler";
+import { validateBody } from "../middlewares/validate";
+import { createVisitSchema, updateVisitSchema } from "../validators/visits";
 
 const router = Router();
 

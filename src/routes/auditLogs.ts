@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { listAuditLogs } from "@/controllers/auditLogs";
-import { asyncHandler } from "@/middlewares/errorHandler";
+import { listAuditLogs } from "../controllers/auditLogs";
+import { asyncHandler } from "../middlewares/errorHandler";
 
 const router = Router();
 

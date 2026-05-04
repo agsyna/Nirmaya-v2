@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { env } from "@/config/env";
-import { AppError } from "@/types";
+import { env } from "../config/env";
+import { AppError } from "../types";
 
 export interface JwtPayload {
   sub: string;

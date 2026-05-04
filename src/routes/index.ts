@@ -1,16 +1,16 @@
 import { Router } from "express";
-import authRoutes from "@/routes/auth";
-import healthRoutes from "@/routes/health";
-import patientRoutes from "@/routes/patients";
-import treatmentRoutes from "@/routes/treatments";
-import visitRoutes from "@/routes/visits";
-import transactionRoutes from "@/routes/transactions";
-import installmentRoutes from "@/routes/installments";
-import documentRoutes from "@/routes/documents";
-import followupRoutes from "@/routes/followups";
-import billRoutes from "@/routes/bills";
-import auditRoutes from "@/routes/auditLogs";
-import { requireAuth, requireClinicScope } from "@/middlewares/auth";
+import authRoutes from "../routes/auth";
+import healthRoutes from "../routes/health";
+import patientRoutes from "../routes/patients";
+import treatmentRoutes from "../routes/treatments";
+import visitRoutes from "../routes/visits";
+import transactionRoutes from "../routes/transactions";
+import installmentRoutes from "../routes/installments";
+import documentRoutes from "../routes/documents";
+import followupRoutes from "../routes/followups";
+import billRoutes from "../routes/bills";
+import auditRoutes from "../routes/auditLogs";
+import { requireAuth, requireClinicScope } from "../middlewares/auth";
 
 const router = Router();
 

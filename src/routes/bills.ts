@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { generateBill, getBill } from "@/controllers/bills";
-import { asyncHandler } from "@/middlewares/errorHandler";
-import { validateBody } from "@/middlewares/validate";
-import { generateBillSchema } from "@/validators/bills";
+import { generateBill, getBill } from "../controllers/bills";
+import { asyncHandler } from "../middlewares/errorHandler";
+import { validateBody } from "../middlewares/validate";
+import { generateBillSchema } from "../validators/bills";
 
 const router = Router();
 

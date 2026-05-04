@@ -1,15 +1,15 @@
 import { Request, Response } from "express";
 import PDFDocument from "pdfkit";
 import { and, eq } from "drizzle-orm";
-import db from "@/config/db";
-import { bills } from "@/schema/bills";
-import { treatments } from "@/schema/treatments";
-import { patients } from "@/schema/patients";
-import { transactions } from "@/schema/transactions";
-import { sendSuccess } from "@/utils/response";
-import { uploadToStorage } from "@/services/documentService";
-import { createAuditLog } from "@/services/auditService";
-import { AppError } from "@/types";
+import db from "../config/db";
+import { bills } from "../schema/bills";
+import { treatments } from "../schema/treatments";
+import { patients } from "../schema/patients";
+import { transactions } from "../schema/transactions";
+import { sendSuccess } from "../utils/response";
+import { uploadToStorage } from "../services/documentService";
+import { createAuditLog } from "../services/auditService";
+import { AppError } from "../types";
 
 const buildPdfBuffer = async (data: {
   patient: any;

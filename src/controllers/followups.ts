@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 import { and, eq, sql } from "drizzle-orm";
-import db from "@/config/db";
-import { followups } from "@/schema/followups";
-import { sendSuccess } from "@/utils/response";
-import { parsePagination } from "@/utils/pagination";
-import { createAuditLog } from "@/services/auditService";
-import { enqueueSms } from "@/services/smsService";
-import { AppError } from "@/types";
+import db from "../config/db";
+import { followups } from "../schema/followups";
+import { sendSuccess } from "../utils/response";
+import { parsePagination } from "../utils/pagination";
+import { createAuditLog } from "../services/auditService";
+import { enqueueSms } from "../services/smsService";
+import { AppError } from "../types";
 
 export const createFollowup = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;

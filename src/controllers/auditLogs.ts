@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
-import db from "@/config/db";
-import { auditLogs } from "@/schema/auditLogs";
-import { sendSuccess } from "@/utils/response";
-import { parsePagination } from "@/utils/pagination";
+import db from "../config/db";
+import { auditLogs } from "../schema/auditLogs";
+import { sendSuccess } from "../utils/response";
+import { parsePagination } from "../utils/pagination";
 
 export const listAuditLogs = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;

@@ -1,9 +1,9 @@
 import bcrypt from "bcryptjs";
 import jwt, { Secret } from "jsonwebtoken";
-import db from "@/config/db";
-import { env } from "@/config/env";
-import { users } from "@/schema/users";
-import { AppError } from "@/types";
+import db from "../config/db";
+import { env } from "../config/env";
+import { users } from "../schema/users";
+import { AppError } from "../types";
 import { eq, and } from "drizzle-orm";
 
 export const loginWithPhone = async (phone: string, password: string) => {

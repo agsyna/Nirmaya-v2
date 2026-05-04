@@ -6,9 +6,9 @@ import {
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
-import { clinics } from "@/schema/clinics";
-import { patients } from "@/schema/patients";
-import { treatments } from "@/schema/treatments";
+import { clinics } from "../schema/clinics";
+import { patients } from "../schema/patients";
+import { treatments } from "../schema/treatments";
 
 export const bills = pgTable(
   "bills",

@@ -1,6 +1,6 @@
-import { supabase } from "@/config/supabase";
-import { env } from "@/config/env";
-import { AppError } from "@/types";
+import { supabase } from "../config/supabase";
+import { env } from "../config/env";
+import { AppError } from "../types";
 
 export const uploadToStorage = async (params: {
   clinicId: string;

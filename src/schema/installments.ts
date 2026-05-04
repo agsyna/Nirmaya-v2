@@ -9,9 +9,9 @@ import {
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
-import { clinics } from "@/schema/clinics";
-import { treatments } from "@/schema/treatments";
-import { installmentStatusEnum } from "@/schema/enums";
+import { clinics } from "../schema/clinics";
+import { treatments } from "../schema/treatments";
+import { installmentStatusEnum } from "../schema/enums";
 
 export const installments = pgTable(
   "installments",

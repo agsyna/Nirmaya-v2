@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { sendSuccess } from "@/utils/response";
-import db from "@/config/db";
+import { sendSuccess } from "../utils/response";
+import db from "../config/db";
 import { sql } from "drizzle-orm";
 
 export const getHealth = async (_req: Request, res: Response) => {

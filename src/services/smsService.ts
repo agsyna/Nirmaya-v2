@@ -1,6 +1,6 @@
-import db from "@/config/db";
-import { smsNotifications } from "@/schema/smsNotifications";
-import { smsDeliveryLogs } from "@/schema/smsDeliveryLogs";
+import db from "../config/db";
+import { smsNotifications } from "../schema/smsNotifications";
+import { smsDeliveryLogs } from "../schema/smsDeliveryLogs";
 
 export const enqueueSms = async (params: {
   clinicId: string;

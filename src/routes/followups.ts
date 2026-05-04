@@ -3,10 +3,10 @@ import {
   createFollowup,
   listFollowups,
   updateFollowup,
-} from "@/controllers/followups";
-import { asyncHandler } from "@/middlewares/errorHandler";
-import { validateBody } from "@/middlewares/validate";
-import { createFollowupSchema, updateFollowupSchema } from "@/validators/followups";
+} from "../controllers/followups";
+import { asyncHandler } from "../middlewares/errorHandler";
+import { validateBody } from "../middlewares/validate";
+import { createFollowupSchema, updateFollowupSchema } from "../validators/followups";
 
 const router = Router();
 

@@ -1,6 +1,6 @@
-import db from "@/config/db";
-import { treatments } from "@/schema/treatments";
-import { transactions } from "@/schema/transactions";
+import db from "../config/db";
+import { treatments } from "../schema/treatments";
+import { transactions } from "../schema/transactions";
 import { and, eq, sql } from "drizzle-orm";
 
 export const getTreatmentBalance = async (params: {

@@ -8,11 +8,11 @@ import {
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
-import { clinics } from "@/schema/clinics";
-import { treatments } from "@/schema/treatments";
-import { patients } from "@/schema/patients";
-import { visits } from "@/schema/visits";
-import { paymentModeEnum, transactionTypeEnum } from "@/schema/enums";
+import { clinics } from "../schema/clinics";
+import { treatments } from "../schema/treatments";
+import { patients } from "../schema/patients";
+import { visits } from "../schema/visits";
+import { paymentModeEnum, transactionTypeEnum } from "../schema/enums";
 
 export const transactions = pgTable(
   "transactions",

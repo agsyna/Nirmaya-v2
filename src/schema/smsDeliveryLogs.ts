@@ -7,9 +7,9 @@ import {
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
-import { clinics } from "@/schema/clinics";
-import { smsNotifications } from "@/schema/smsNotifications";
-import { deliveryStatusEnum } from "@/schema/enums";
+import { clinics } from "../schema/clinics";
+import { smsNotifications } from "../schema/smsNotifications";
+import { deliveryStatusEnum } from "../schema/enums";
 
 export const smsDeliveryLogs = pgTable(
   "sms_delivery_logs",
