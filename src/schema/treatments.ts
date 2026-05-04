@@ -32,6 +32,9 @@ export const treatments = pgTable(
     discountType: discountTypeEnum("discount_type"),
     discountValue: numeric("discount_value", { precision: 12, scale: 2 }),
     finalFee: numeric("final_fee", { precision: 12, scale: 2 }).notNull(),
+    paidAmount: numeric("paid_amount", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0.00"),
     notes: text("notes"),
     isDeleted: boolean("is_deleted").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

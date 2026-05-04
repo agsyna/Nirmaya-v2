@@ -12,6 +12,8 @@ const buildSmsMessage = (eventType: string, payload: any) => {
   switch (eventType) {
     case "patient_created":
       return `Welcome ${payload.patientName || ""}. Your patient profile is created.`;
+    case "patient_updated":
+      return `Hello ${payload.patientName || ""}. Your patient profile was updated.`;
     case "treatment_created":
       return `Treatment ${payload.treatmentTitle || ""} created. Total: INR ${payload.totalFee || ""}.`;
     case "visit_added":

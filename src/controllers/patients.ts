@@ -11,17 +11,86 @@ import { sendSuccess } from "../utils/response";
 import { parsePagination } from "../utils/pagination";
 import { createAuditLog } from "../services/auditService";
 import { enqueueSms } from "../services/smsService";
+import { uploadToStorage } from "../services/documentService";
 import { AppError } from "../types";
+
+const getPatientProofFiles = (req: Request) => {
+  const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+  return {
+    idProofFile: files?.idProofFile?.[0],
+    cghsFile: files?.cghsFile?.[0],
+    echsFile: files?.echsFile?.[0],
+  };
+};
+
+const uploadPatientProofFiles = async (params: {
+  clinicId: string;
+  patientId: string;
+  files: ReturnType<typeof getPatientProofFiles>;
+}) => {
+  const updates: Partial<typeof patients.$inferInsert> = {};
+
+  const uploadProof = async (
+    file: Express.Multer.File | undefined,
+    folder: string
+  ) => {
+    if (!file) return null;
+    return uploadToStorage({
+      clinicId: params.clinicId,
+      patientId: params.patientId,
+      fileName: file.originalname,
+      fileBuffer: file.buffer,
+      contentType: file.mimetype,
+      folder,
+    });
+  };
+
+  const [idProof, cghs, echs] = await Promise.all([
+    uploadProof(params.files.idProofFile, "id-proof"),
+    uploadProof(params.files.cghsFile, "cghs"),
+    uploadProof(params.files.echsFile, "echs"),
+  ]);
+
+  if (idProof) {
+    updates.hasIdProof = true;
+    updates.idProofFileUrl = idProof.publicUrl;
+  }
+  if (cghs) {
+    updates.hasCghs = true;
+    updates.cghsFileUrl = cghs.publicUrl;
+  }
+  if (echs) {
+    updates.hasEchs = true;
+    updates.echsFileUrl = echs.publicUrl;
+  }
+
+  return updates;
+};
 
 export const createPatient = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
-  const [patient] = await db
+  const files = getPatientProofFiles(req);
+  const [createdPatient] = await db
     .insert(patients)
     .values({
       clinicId,
       ...req.body,
     })
     .returning();
+
+  const proofUpdates = await uploadPatientProofFiles({
+    clinicId,
+    patientId: createdPatient.id,
+    files,
+  });
+
+  const [patient] = Object.keys(proofUpdates).length
+    ? await db
+        .update(patients)
+        .set({ ...proofUpdates, updatedAt: new Date() })
+        .where(and(eq(patients.id, createdPatient.id), eq(patients.clinicId, clinicId)))
+        .returning()
+    : [createdPatient];
 
   await createAuditLog({
     clinicId,
@@ -169,6 +238,7 @@ export const getPatient = async (req: Request, res: Response) => {
 export const updatePatient = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
   const patientId = req.params.id as string;
+  const files = getPatientProofFiles(req);
 
   const [existing] = await db
     .select()
@@ -180,10 +250,17 @@ export const updatePatient = async (req: Request, res: Response) => {
     throw new AppError(404, "Patient not found", "Not found");
   }
 
+  const proofUpdates = await uploadPatientProofFiles({
+    clinicId,
+    patientId,
+    files,
+  });
+
   const [updated] = await db
     .update(patients)
     .set({
       ...req.body,
+      ...proofUpdates,
       updatedAt: new Date(),
     })
     .where(and(eq(patients.id, patientId), eq(patients.clinicId, clinicId)))
@@ -197,6 +274,16 @@ export const updatePatient = async (req: Request, res: Response) => {
     oldData: existing,
     newData: updated,
     changedBy: req.user!.id,
+  });
+
+  await enqueueSms({
+    clinicId,
+    patientId: updated.id,
+    eventType: "patient_updated",
+    payload: {
+      patientName: updated.name,
+      phone: updated.phone,
+    },
   });
 
   return sendSuccess(res, updated, "Patient updated", 200);

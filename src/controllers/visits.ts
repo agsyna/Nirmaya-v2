@@ -3,14 +3,46 @@ import { and, eq, sql, gte, lte } from "drizzle-orm";
 import db from "../config/db";
 import { visits } from "../schema/visits";
 import { treatments } from "../schema/treatments";
+import { transactions } from "../schema/transactions";
+import { documents } from "../schema/documents";
 import { sendSuccess } from "../utils/response";
 import { parsePagination } from "../utils/pagination";
 import { createAuditLog } from "../services/auditService";
 import { enqueueSms } from "../services/smsService";
+import { uploadToStorage } from "../services/documentService";
 import { AppError } from "../types";
+
+const getVisitDetailFiles = (req: Request) => {
+  const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+  return {
+    reportFiles: files?.reportFiles ?? [],
+    prescriptionFiles: files?.prescriptionFiles ?? [],
+  };
+};
+
+const getClinicTreatment = async (clinicId: string, treatmentId: string) => {
+  const [treatment] = await db
+    .select()
+    .from(treatments)
+    .where(
+      and(
+        eq(treatments.id, treatmentId),
+        eq(treatments.clinicId, clinicId),
+        eq(treatments.isDeleted, false)
+      )
+    )
+    .limit(1);
+
+  if (!treatment) {
+    throw new AppError(404, "Treatment not found", "Not found");
+  }
+
+  return treatment;
+};
 
 export const createVisit = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
+  const treatment = await getClinicTreatment(clinicId, req.body.treatmentId);
 
   const [visit] = await db
     .insert(visits)
@@ -29,25 +61,161 @@ export const createVisit = async (req: Request, res: Response) => {
     changedBy: req.user!.id,
   });
 
-  const [treatment] = await db
-    .select()
-    .from(treatments)
-    .where(and(eq(treatments.id, visit.treatmentId), eq(treatments.clinicId, clinicId)))
-    .limit(1);
+  await enqueueSms({
+    clinicId,
+    patientId: treatment.patientId,
+    eventType: "visit_added",
+    payload: {
+      visitDate: visit.visitDate,
+      treatmentTitle: treatment.title,
+    },
+  });
 
-  if (treatment) {
+  return sendSuccess(res, visit, "Visit created", 201);
+};
+
+export const createVisitWithDetails = async (req: Request, res: Response) => {
+  const clinicId = req.user!.clinicId;
+  const treatment = await getClinicTreatment(clinicId, req.body.treatmentId);
+  const files = getVisitDetailFiles(req);
+
+  const [visit] = await db
+    .insert(visits)
+    .values({
+      clinicId,
+      treatmentId: req.body.treatmentId,
+      visitDate: req.body.visitDate,
+      notes: req.body.notes,
+    })
+    .returning();
+
+  await createAuditLog({
+    clinicId,
+    entity: "visit",
+    entityId: visit.id,
+    action: "create",
+    newData: visit,
+    changedBy: req.user!.id,
+  });
+
+  let transaction: typeof transactions.$inferSelect | null = null;
+  if (req.body.paymentAmount) {
+    [transaction] = await db
+      .insert(transactions)
+      .values({
+        clinicId,
+        treatmentId: treatment.id,
+        patientId: treatment.patientId,
+        visitId: visit.id,
+        type: "payment",
+        amount: req.body.paymentAmount,
+        paymentMode: req.body.paymentMode || null,
+        referenceId: req.body.paymentReferenceId || null,
+        notes: req.body.paymentNotes || null,
+      })
+      .returning();
+
+    await createAuditLog({
+      clinicId,
+      entity: "transaction",
+      entityId: transaction.id,
+      action: "create",
+      newData: transaction,
+      changedBy: req.user!.id,
+    });
+
     await enqueueSms({
       clinicId,
-      patientId: treatment.patientId,
-      eventType: "visit_added",
+      patientId: transaction.patientId,
+      treatmentId: transaction.treatmentId,
+      eventType: "payment_added",
       payload: {
-        visitDate: visit.visitDate,
-        treatmentTitle: treatment.title,
+        amount: transaction.amount,
+        paymentMode: transaction.paymentMode,
       },
     });
   }
 
-  return sendSuccess(res, visit, "Visit created", 201);
+  const uploadedDocuments = [];
+  const uploadVisitDocument = async (
+    file: Express.Multer.File,
+    category: "report" | "prescription"
+  ) => {
+    const uploaded = await uploadToStorage({
+      clinicId,
+      patientId: treatment.patientId,
+      fileName: file.originalname,
+      fileBuffer: file.buffer,
+      contentType: file.mimetype,
+      folder: category,
+    });
+
+    const [document] = await db
+      .insert(documents)
+      .values({
+        clinicId,
+        patientId: treatment.patientId,
+        treatmentId: treatment.id,
+        visitId: visit.id,
+        category,
+        fileUrl: uploaded.publicUrl,
+        fileName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        uploadedBy: req.user!.id,
+      })
+      .returning();
+
+    await createAuditLog({
+      clinicId,
+      entity: "document",
+      entityId: document.id,
+      action: "create",
+      newData: document,
+      changedBy: req.user!.id,
+    });
+
+    return document;
+  };
+
+  for (const file of files.reportFiles) {
+    uploadedDocuments.push(await uploadVisitDocument(file, "report"));
+  }
+  for (const file of files.prescriptionFiles) {
+    const document = await uploadVisitDocument(file, "prescription");
+    uploadedDocuments.push(document);
+    await enqueueSms({
+      clinicId,
+      patientId: treatment.patientId,
+      treatmentId: treatment.id,
+      eventType: "prescription_uploaded",
+      payload: {
+        patientId: treatment.patientId,
+        documentName: file.originalname,
+      },
+    });
+  }
+
+  await enqueueSms({
+    clinicId,
+    patientId: treatment.patientId,
+    eventType: "visit_added",
+    payload: {
+      visitDate: visit.visitDate,
+      treatmentTitle: treatment.title,
+    },
+  });
+
+  return sendSuccess(
+    res,
+    {
+      visit,
+      transaction,
+      documents: uploadedDocuments,
+    },
+    "Visit details created",
+    201
+  );
 };
 
 export const listVisits = async (req: Request, res: Response) => {

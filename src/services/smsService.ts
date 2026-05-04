@@ -1,6 +1,18 @@
 import db from "../config/db";
+import { supabase } from "../config/supabase";
 import { smsNotifications } from "../schema/smsNotifications";
 import { smsDeliveryLogs } from "../schema/smsDeliveryLogs";
+
+const triggerSmsProcessor = async () => {
+  try {
+    const { error } = await supabase.functions.invoke("sms-processor");
+    if (error) {
+      console.warn("SMS processor trigger failed:", error.message);
+    }
+  } catch (error) {
+    console.warn("SMS processor trigger failed:", error);
+  }
+};
 
 export const enqueueSms = async (params: {
   clinicId: string;
@@ -21,6 +33,7 @@ export const enqueueSms = async (params: {
       scheduledAt: params.scheduledAt || new Date(),
     })
     .returning();
+  void triggerSmsProcessor();
   return row;
 };
 

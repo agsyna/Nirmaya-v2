@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { and, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, inArray, lt, or, sql } from "drizzle-orm";
 import db from "../config/db";
 import { bills } from "../schema/bills";
 import { documents } from "../schema/documents";
@@ -12,6 +12,88 @@ import { visits } from "../schema/visits";
 import { AppError } from "../types";
 import { parsePagination } from "../utils/pagination";
 import { sendSuccess } from "../utils/response";
+
+const getTodayRange = () => {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  const date = start.toISOString().slice(0, 10);
+  return { start, end, date };
+};
+
+export const getDashboardSummary = async (req: Request, res: Response) => {
+  const clinicId = req.user!.clinicId;
+  const { start, end, date } = getTodayRange();
+
+  const [
+    [{ totalPatients }],
+    [{ activeTreatments }],
+    [{ todaysFollowups }],
+    [{ todaysCollection }],
+    recentPatients,
+  ] = await Promise.all([
+    db
+      .select({ totalPatients: sql<number>`count(*)` })
+      .from(patients)
+      .where(and(eq(patients.clinicId, clinicId), eq(patients.isActive, true))),
+    db
+      .select({ activeTreatments: sql<number>`count(*)` })
+      .from(treatments)
+      .where(
+        and(
+          eq(treatments.clinicId, clinicId),
+          eq(treatments.isDeleted, false),
+          eq(treatments.status, "ongoing")
+        )
+      ),
+    db
+      .select({ todaysFollowups: sql<number>`count(*)` })
+      .from(followups)
+      .where(
+        and(
+          eq(followups.clinicId, clinicId),
+          eq(followups.isDeleted, false),
+          eq(followups.status, "scheduled"),
+          eq(followups.scheduledDate, date)
+        )
+      ),
+    db
+      .select({
+        todaysCollection: sql<string>`COALESCE(SUM(${transactions.amount}), 0)`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.clinicId, clinicId),
+          eq(transactions.isDeleted, false),
+          eq(transactions.type, "payment"),
+          gte(transactions.createdAt, start),
+          lt(transactions.createdAt, end)
+        )
+      ),
+    db
+      .select()
+      .from(patients)
+      .where(and(eq(patients.clinicId, clinicId), eq(patients.isActive, true)))
+      .orderBy(desc(patients.createdAt))
+      .limit(3),
+  ]);
+
+  return sendSuccess(
+    res,
+    {
+      totalPatients: Number(totalPatients),
+      activeTreatments: Number(activeTreatments),
+      todaysFollowups: Number(todaysFollowups),
+      todaysCollection: Number(todaysCollection),
+      recentPatients,
+    },
+    "Dashboard summary fetched",
+    200
+  );
+};
 
 export const listDashboardPatients = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;

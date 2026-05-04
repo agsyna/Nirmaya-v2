@@ -71,6 +71,7 @@ export const auditActionEnum = pgEnum("audit_action", [
 
 export const smsEventEnum = pgEnum("sms_event", [
   "patient_created",
+  "patient_updated",
   "treatment_created",
   "visit_added",
   "prescription_uploaded",
