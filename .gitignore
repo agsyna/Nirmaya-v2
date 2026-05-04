@@ -10,7 +10,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .vercel
-drizzle/
+drizzle/*
+!drizzle/0002_patient_proof_dashboard_sms.sql
+!drizzle/meta/
+drizzle/meta/*
+!drizzle/meta/_journal.json
 *.db
 .next/
 .nuxt/

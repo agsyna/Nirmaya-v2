@@ -67,9 +67,38 @@ const uploadPatientProofFiles = async (params: {
   return updates;
 };
 
+const assertRequiredProofFiles = (params: {
+  body: Record<string, any>;
+  files: ReturnType<typeof getPatientProofFiles>;
+  existing?: typeof patients.$inferSelect;
+}) => {
+  const hasCghs = params.body.hasCghs ?? params.existing?.hasCghs ?? false;
+  const hasEchs = params.body.hasEchs ?? params.existing?.hasEchs ?? false;
+  const cghsFileUrl = params.body.cghsFileUrl ?? params.existing?.cghsFileUrl;
+  const echsFileUrl = params.body.echsFileUrl ?? params.existing?.echsFileUrl;
+
+  if (hasCghs && !params.files.cghsFile && !cghsFileUrl) {
+    throw new AppError(
+      400,
+      "CGHS document is required",
+      "Upload cghsFile or provide cghsFileUrl when hasCghs is true"
+    );
+  }
+
+  if (hasEchs && !params.files.echsFile && !echsFileUrl) {
+    throw new AppError(
+      400,
+      "ECHS document is required",
+      "Upload echsFile or provide echsFileUrl when hasEchs is true"
+    );
+  }
+};
+
 export const createPatient = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
   const files = getPatientProofFiles(req);
+  assertRequiredProofFiles({ body: req.body, files });
+
   const [createdPatient] = await db
     .insert(patients)
     .values({
@@ -115,17 +144,39 @@ export const listPatients = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
   const { page, limit, offset } = parsePagination(req.query);
   const search = (req.query.search as string) || "";
+  const gender = req.query.gender as "male" | "female" | "other" | undefined;
+  const hasIdProof = req.query.hasIdProof as string | undefined;
+  const hasCghs = req.query.hasCghs as string | undefined;
+  const hasEchs = req.query.hasEchs as string | undefined;
+  const createdFrom = req.query.createdFrom as string | undefined;
+  const createdTo = req.query.createdTo as string | undefined;
 
-  const whereClause = search
-    ? and(
-        eq(patients.clinicId, clinicId),
-        eq(patients.isActive, true),
-        or(
-          ilike(patients.phone, `%${search}%`),
-          ilike(patients.name, `%${search}%`)
-        )
-      )
-    : and(eq(patients.clinicId, clinicId), eq(patients.isActive, true));
+  let whereClause = and(eq(patients.clinicId, clinicId), eq(patients.isActive, true));
+
+  if (search) {
+    whereClause = and(
+      whereClause,
+      or(ilike(patients.phone, `%${search}%`), ilike(patients.name, `%${search}%`))
+    );
+  }
+  if (gender) {
+    whereClause = and(whereClause, eq(patients.gender, gender));
+  }
+  if (hasIdProof !== undefined) {
+    whereClause = and(whereClause, eq(patients.hasIdProof, hasIdProof === "true"));
+  }
+  if (hasCghs !== undefined) {
+    whereClause = and(whereClause, eq(patients.hasCghs, hasCghs === "true"));
+  }
+  if (hasEchs !== undefined) {
+    whereClause = and(whereClause, eq(patients.hasEchs, hasEchs === "true"));
+  }
+  if (createdFrom) {
+    whereClause = and(whereClause, sql`${patients.createdAt} >= ${new Date(createdFrom)}`);
+  }
+  if (createdTo) {
+    whereClause = and(whereClause, sql`${patients.createdAt} <= ${new Date(createdTo)}`);
+  }
 
   const data = await db
     .select()
@@ -249,6 +300,7 @@ export const updatePatient = async (req: Request, res: Response) => {
   if (!existing) {
     throw new AppError(404, "Patient not found", "Not found");
   }
+  assertRequiredProofFiles({ body: req.body, files, existing });
 
   const proofUpdates = await uploadPatientProofFiles({
     clinicId,
@@ -260,6 +312,8 @@ export const updatePatient = async (req: Request, res: Response) => {
     .update(patients)
     .set({
       ...req.body,
+      ...(req.body.hasCghs === false ? { cghsFileUrl: null } : {}),
+      ...(req.body.hasEchs === false ? { echsFileUrl: null } : {}),
       ...proofUpdates,
       updatedAt: new Date(),
     })

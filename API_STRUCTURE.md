@@ -220,6 +220,26 @@ Response:
 
 Dashboard APIs are protected and clinic-scoped.
 
+### GET `/dashboard/summary`
+
+Returns receptionist dashboard totals for the logged-in clinic.
+
+Response:
+
+```json
+{
+  "success": true,
+  "message": "Dashboard summary fetched",
+  "data": {
+    "totalPatients": 25,
+    "activeTreatments": 12,
+    "todaysFollowups": 3,
+    "todaysCollection": 15000,
+    "recentPatients": []
+  }
+}
+```
+
 ### GET `/dashboard/patients`
 
 Returns patient rows for the receptionist dashboard.
@@ -357,7 +377,9 @@ Response:
 
 Creates a patient in the logged-in user's clinic.
 
-Request:
+Supports both `application/json` and `multipart/form-data`.
+
+JSON request:
 
 ```json
 {
@@ -369,8 +391,29 @@ Request:
   "heightCm": 172,
   "weightKg": 70,
   "bloodGroup": "B+",
-  "hasIdProof": true
+  "hasIdProof": true,
+  "hasCghs": true,
+  "hasEchs": false
 }
+```
+
+Multipart fields:
+
+```text
+name required
+phone required
+email optional
+age optional
+gender optional
+heightCm optional
+weightKg optional
+bloodGroup optional
+hasIdProof optional boolean
+hasCghs optional boolean
+hasEchs optional boolean
+idProofFile optional file
+cghsFile optional file
+echsFile optional file
 ```
 
 Required:
@@ -442,6 +485,11 @@ Response:
       "weightKg": "70.00",
       "bloodGroup": "B+",
       "hasIdProof": true,
+      "idProofFileUrl": "https://supabase-storage-url/id-proof.jpg",
+      "hasCghs": true,
+      "cghsFileUrl": "https://supabase-storage-url/cghs.jpg",
+      "hasEchs": false,
+      "echsFileUrl": null,
       "isActive": true,
       "createdAt": "2026-05-05T00:00:00.000Z",
       "updatedAt": "2026-05-05T00:00:00.000Z"
@@ -478,7 +526,7 @@ Response:
 
 ### PATCH `/patients/:id`
 
-Updates patient fields.
+Updates patient fields. Supports JSON or multipart proof file replacement using the same fields as create.
 
 Request:
 
@@ -492,7 +540,9 @@ Request:
   "heightCm": 172,
   "weightKg": 71,
   "bloodGroup": "B+",
-  "hasIdProof": true
+  "hasIdProof": true,
+  "hasCghs": true,
+  "hasEchs": false
 }
 ```
 
@@ -703,6 +753,44 @@ Response:
   "success": true,
   "message": "Visit created",
   "data": {}
+}
+```
+
+### POST `/visits/with-details`
+
+Creates a visit and can also create a linked payment plus upload report or prescription files.
+
+Content type:
+
+```text
+multipart/form-data
+```
+
+Fields:
+
+```text
+treatmentId required
+visitDate required, YYYY-MM-DD
+notes optional
+paymentAmount optional
+paymentMode optional: cash, upi, card, bank
+paymentReferenceId optional
+paymentNotes optional
+reportFiles optional, repeatable files
+prescriptionFiles optional, repeatable files
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "message": "Visit details created",
+  "data": {
+    "visit": {},
+    "transaction": {},
+    "documents": []
+  }
 }
 ```
 
@@ -1284,6 +1372,7 @@ The code queues SMS notifications for these events:
 
 ```text
 patient_created
+patient_updated
 treatment_created
 visit_added
 prescription_uploaded

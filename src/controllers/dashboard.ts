@@ -14,12 +14,15 @@ import { parsePagination } from "../utils/pagination";
 import { sendSuccess } from "../utils/response";
 
 const getTodayRange = () => {
+  const istOffsetMs = 330 * 60 * 1000;
   const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  const date = start.toISOString().slice(0, 10);
+  const istNow = new Date(now.getTime() + istOffsetMs);
+  const date = istNow.toISOString().slice(0, 10);
+  const start = new Date(
+    Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate()) -
+      istOffsetMs
+  );
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return { start, end, date };
 };
 

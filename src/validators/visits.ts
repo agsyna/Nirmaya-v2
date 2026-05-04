@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { utcDateString } from "../utils/dateTime";
 
 const optionalNumber = z.preprocess((value) => {
   if (value === "" || value === undefined || value === null) return undefined;
@@ -7,7 +8,7 @@ const optionalNumber = z.preprocess((value) => {
 
 export const createVisitSchema = z.object({
   treatmentId: z.string().uuid(),
-  visitDate: z.string(),
+  visitDate: utcDateString,
   notes: z.string().optional().nullable(),
 });
 

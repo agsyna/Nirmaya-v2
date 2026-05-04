@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const phone10 = z
+  .string()
+  .trim()
+  .regex(/^\d{10}$/, "Phone number must be exactly 10 digits");
+
 const optionalNumber = z.preprocess((value) => {
   if (value === "" || value === undefined || value === null) return undefined;
   return Number(value);
@@ -19,7 +24,7 @@ const optionalBoolean = z.preprocess((value) => {
 
 export const createPatientSchema = z.object({
   name: z.string().min(2),
-  phone: z.string().min(6),
+  phone: phone10,
   email: z.string().email().optional().nullable(),
   age: optionalInteger,
   gender: z.enum(["male", "female", "other"]).optional().nullable(),

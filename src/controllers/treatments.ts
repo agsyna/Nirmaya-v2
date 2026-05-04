@@ -2,8 +2,12 @@ import { Request, Response } from "express";
 import { and, eq, sql, lt } from "drizzle-orm";
 import db from "../config/db";
 import { treatments } from "../schema/treatments";
+import { patients } from "../schema/patients";
 import { transactions } from "../schema/transactions";
 import { visits } from "../schema/visits";
+import { documents } from "../schema/documents";
+import { installments } from "../schema/installments";
+import { bills } from "../schema/bills";
 import { sendSuccess } from "../utils/response";
 import { parsePagination } from "../utils/pagination";
 import { createAuditLog } from "../services/auditService";
@@ -136,7 +140,21 @@ export const getTreatment = async (req: Request, res: Response) => {
     throw new AppError(404, "Treatment not found", "Not found");
   }
 
-  const [treatmentVisits, treatmentTransactions, balance] = await Promise.all([
+  const [
+    patient,
+    treatmentVisits,
+    treatmentTransactions,
+    treatmentDocuments,
+    treatmentInstallments,
+    treatmentBills,
+    balance,
+  ] = await Promise.all([
+    db
+      .select()
+      .from(patients)
+      .where(and(eq(patients.id, treatment.patientId), eq(patients.clinicId, clinicId)))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
     db
       .select()
       .from(visits)
@@ -145,15 +163,48 @@ export const getTreatment = async (req: Request, res: Response) => {
       .select()
       .from(transactions)
       .where(and(eq(transactions.treatmentId, treatmentId), eq(transactions.clinicId, clinicId), eq(transactions.isDeleted, false))),
+    db
+      .select()
+      .from(documents)
+      .where(and(eq(documents.treatmentId, treatmentId), eq(documents.clinicId, clinicId), eq(documents.isDeleted, false))),
+    db
+      .select()
+      .from(installments)
+      .where(and(eq(installments.treatmentId, treatmentId), eq(installments.clinicId, clinicId), eq(installments.isDeleted, false))),
+    db
+      .select()
+      .from(bills)
+      .where(and(eq(bills.treatmentId, treatmentId), eq(bills.clinicId, clinicId))),
     getTreatmentBalance({ clinicId, treatmentId }),
   ]);
+
+  const paidAmount = treatmentTransactions.reduce(
+    (sum, transaction) => sum + Number(transaction.amount),
+    0
+  );
+  const finalFee = Number(treatment.finalFee);
 
   return sendSuccess(
     res,
     {
-      treatment,
+      treatment: {
+        ...treatment,
+        paidAmount,
+        balance: finalFee - paidAmount,
+      },
+      patient,
       visits: treatmentVisits,
       transactions: treatmentTransactions,
+      documents: treatmentDocuments,
+      installments: treatmentInstallments,
+      bills: treatmentBills,
+      paymentSummary: {
+        totalFee: Number(treatment.totalFee),
+        finalFee,
+        paidAmount,
+        balance: finalFee - paidAmount,
+        transactionCount: treatmentTransactions.length,
+      },
       balance,
     },
     "Treatment fetched",

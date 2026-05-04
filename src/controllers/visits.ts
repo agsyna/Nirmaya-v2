@@ -3,6 +3,7 @@ import { and, eq, sql, gte, lte } from "drizzle-orm";
 import db from "../config/db";
 import { visits } from "../schema/visits";
 import { treatments } from "../schema/treatments";
+import { patients } from "../schema/patients";
 import { transactions } from "../schema/transactions";
 import { documents } from "../schema/documents";
 import { sendSuccess } from "../utils/response";
@@ -257,6 +258,109 @@ export const listVisits = async (req: Request, res: Response) => {
   });
 };
 
+export const getVisit = async (req: Request, res: Response) => {
+  const clinicId = req.user!.clinicId;
+  const visitId = req.params.id as string;
+
+  const [visit] = await db
+    .select()
+    .from(visits)
+    .where(and(eq(visits.id, visitId), eq(visits.clinicId, clinicId), eq(visits.isDeleted, false)))
+    .limit(1);
+
+  if (!visit) {
+    throw new AppError(404, "Visit not found", "Not found");
+  }
+
+  const [treatment] = await db
+    .select()
+    .from(treatments)
+    .where(
+      and(
+        eq(treatments.id, visit.treatmentId),
+        eq(treatments.clinicId, clinicId),
+        eq(treatments.isDeleted, false)
+      )
+    )
+    .limit(1);
+
+  if (!treatment) {
+    throw new AppError(404, "Treatment not found", "Not found");
+  }
+
+  const [patient] = await db
+    .select()
+    .from(patients)
+    .where(and(eq(patients.id, treatment.patientId), eq(patients.clinicId, clinicId)))
+    .limit(1);
+
+  const [visitTransactions, treatmentTransactions, visitDocuments] = await Promise.all([
+    db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.visitId, visitId),
+          eq(transactions.clinicId, clinicId),
+          eq(transactions.isDeleted, false)
+        )
+      ),
+    db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.treatmentId, treatment.id),
+          eq(transactions.clinicId, clinicId),
+          eq(transactions.isDeleted, false)
+        )
+      ),
+    db
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.visitId, visitId),
+          eq(documents.clinicId, clinicId),
+          eq(documents.isDeleted, false)
+        )
+      ),
+  ]);
+
+  const treatmentPaidAmount = treatmentTransactions.reduce(
+    (sum, transaction) => sum + Number(transaction.amount),
+    0
+  );
+  const visitPaidAmount = visitTransactions.reduce(
+    (sum, transaction) => sum + Number(transaction.amount),
+    0
+  );
+  const finalFee = Number(treatment.finalFee);
+
+  return sendSuccess(
+    res,
+    {
+      visit,
+      patient,
+      treatment: {
+        ...treatment,
+        paidAmount: treatmentPaidAmount,
+        balance: finalFee - treatmentPaidAmount,
+      },
+      documents: visitDocuments,
+      transactions: visitTransactions,
+      paymentSummary: {
+        visitPaidAmount,
+        treatmentPaidAmount,
+        treatmentFinalFee: finalFee,
+        treatmentBalance: finalFee - treatmentPaidAmount,
+      },
+    },
+    "Visit fetched",
+    200
+  );
+};
+
 export const updateVisit = async (req: Request, res: Response) => {
   const clinicId = req.user!.clinicId;
   const visitId = req.params.id as string;
@@ -269,6 +373,9 @@ export const updateVisit = async (req: Request, res: Response) => {
 
   if (!existing) {
     throw new AppError(404, "Visit not found", "Not found");
+  }
+  if (req.body.treatmentId) {
+    await getClinicTreatment(clinicId, req.body.treatmentId);
   }
 
   const [updated] = await db

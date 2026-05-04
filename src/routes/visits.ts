@@ -3,6 +3,7 @@ import {
   createVisit,
   createVisitWithDetails,
   deleteVisit,
+  getVisit,
   listVisits,
   updateVisit,
 } from "../controllers/visits";
@@ -30,6 +31,7 @@ router.post(
 );
 router.post("/", validateBody(createVisitSchema), asyncHandler(createVisit));
 router.get("/", asyncHandler(listVisits));
+router.get("/:id", asyncHandler(getVisit));
 router.patch("/:id", validateBody(updateVisitSchema), asyncHandler(updateVisit));
 router.delete("/:id", asyncHandler(deleteVisit));
 

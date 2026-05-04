@@ -8,6 +8,26 @@ const twilioPhone = Deno.env.get("TWILIO_PHONE") || "";
 
 const supabase = createClient(supabaseUrl, serviceKey);
 
+const normalizeIndianPhoneForSms = (phone: string | null | undefined) => {
+  if (!phone) return null;
+
+  const trimmed = phone.trim();
+  if (!trimmed) return null;
+
+  const digits = trimmed.replace(/\D/g, "");
+  if (/^[6-9]\d{9}$/.test(digits)) {
+    return `+91${digits}`;
+  }
+  if (/^91[6-9]\d{9}$/.test(digits)) {
+    return `+${digits}`;
+  }
+  if (/^\+91[6-9]\d{9}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  return null;
+};
+
 const buildSmsMessage = (eventType: string, payload: any) => {
   switch (eventType) {
     case "patient_created":
@@ -87,8 +107,10 @@ Deno.serve(async () => {
         recipient = patient?.phone;
       }
 
+      recipient = normalizeIndianPhoneForSms(recipient);
+
       if (!recipient) {
-        throw new Error("Recipient phone not found");
+        throw new Error("Recipient phone not found or invalid");
       }
 
       const message = buildSmsMessage(notification.event_type, notification.payload);

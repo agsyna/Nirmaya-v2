@@ -2,6 +2,7 @@ import db from "../config/db";
 import { supabase } from "../config/supabase";
 import { smsNotifications } from "../schema/smsNotifications";
 import { smsDeliveryLogs } from "../schema/smsDeliveryLogs";
+import { normalizeIndianPhoneForSms } from "../utils/phone";
 
 const triggerSmsProcessor = async () => {
   try {
@@ -22,6 +23,12 @@ export const enqueueSms = async (params: {
   payload: Record<string, unknown>;
   scheduledAt?: Date;
 }) => {
+  const payload = { ...params.payload };
+  const phone = normalizeIndianPhoneForSms(payload.phone as string | undefined);
+  if (phone) {
+    payload.phone = phone;
+  }
+
   const [row] = await db
     .insert(smsNotifications)
     .values({
@@ -29,7 +36,7 @@ export const enqueueSms = async (params: {
       patientId: params.patientId || null,
       treatmentId: params.treatmentId || null,
       eventType: params.eventType as any,
-      payload: params.payload,
+      payload,
       scheduledAt: params.scheduledAt || new Date(),
     })
     .returning();
