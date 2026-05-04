@@ -115,7 +115,6 @@ export const createVisit = async (req: Request, res: Response) => {
       treatmentTitle: treatment.title,
       patientName: patient.name,
       phone: patient.phone,
-      paymentAmount: transaction?.amount ?? null,
     },
   });
 
